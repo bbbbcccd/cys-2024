@@ -10,7 +10,7 @@ input_text = "I found some great recipes at http://allrecipes.com and https://fo
 
 # Keeps urls from text
 def filter_url(text): 
-    url_pattern = r'(https?://\S+)'
+    url_pattern = r'(https?://\S+?(?=,|\s|$))'
     urls = re.findall(url_pattern, text)
     return urls
 

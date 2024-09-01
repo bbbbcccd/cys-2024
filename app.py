@@ -1,8 +1,12 @@
-from flask import Flask, request
-
+from flask import Flask, request, jsonify
+from message_parser import filter_url,check_grammar
+from phishing import predict_phishing_probabilities
 app = Flask(__name__)
 
-@app.route('/verify-sender-id/<sender_id>', methods=['POST'])
+@app.route('/')
+
+
+@app.route('/verify-sender-id/<sender_id>', methods=['POST', 'GET'])
 def verify_sender_id(sender_id):
     return {
         "sender_id": sender_id,
@@ -12,12 +16,23 @@ def verify_sender_id(sender_id):
 @app.route('/verify-message', methods=['POST'])
 def verify_message():
     data = request.get_json()
-    msg = data.get("msg")
+    msg = data.get("msg") #get input text as a string
+    
+    # Check grammar
+    grammarChecked = check_grammar(msg) #should return a Yes or No
+    if grammarChecked == "Yes":
+        check = True
+    else:
+        check = False
 
+    # Predict phishing probability for each url
+    urls = filter_url(msg) # should return an array of URLs
+    urls = predict_phishing_probabilities(urls)
+    
     return {
         "msg": msg,
-        "links": [], # array of url: phishing website likelihood
-        "grammar": True # Grammar of message
+        "links": urls, # array of url: phishing website likelihood
+        "grammar": check # Grammar of message
     }
 
 
