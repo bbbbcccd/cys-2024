@@ -5,9 +5,6 @@ import re
 
 load_dotenv()
 
-# will be input from tele
-input_text = "I found some great recipes at http://allrecipes.com and https://foodnetwork.com, which I think you would love to try."
-
 # Keeps urls from text
 def filter_url(text): 
     url_pattern = r'(https?://\S+?(?=,|\s|$))'
