@@ -1,21 +1,21 @@
+from dotenv import load_dotenv
 from openai import OpenAI
 import os
-from dotenv import load_dotenv
+import re
 
 load_dotenv()
-import re
 
 # will be input from tele
 input_text = "I found some great recipes at http://allrecipes.com and https://foodnetwork.com, which I think you would love to try."
 
-def cleanup(text): # function to return url in array
+# Keeps urls from text
+def filter_url(text): 
     url_pattern = r'(https?://\S+)'
     urls = re.findall(url_pattern, text)
     return urls
 
-print(cleanup(input_text))
-
-def grammarCheck(text):
+# Checks for grammar accuracy of text
+def check_grammar(text):
     key = os.environ.get('GPTKEY')
 
     client = OpenAI(api_key=key)
@@ -32,5 +32,5 @@ def grammarCheck(text):
     for chunk in stream:
         if chunk.choices[0].delta.content is not None:
             response += chunk.choices[0].delta.content
+    
     return response.strip()
-print(grammarCheck(input_text))
