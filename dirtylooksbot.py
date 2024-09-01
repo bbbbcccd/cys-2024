@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 import os
 
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
 # Get tele bot key
