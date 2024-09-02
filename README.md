@@ -12,10 +12,16 @@ This Telegram bot is designed to enhance cybersecurity by detecting potential ph
 - **Sender Verification:** Checks sender IDs against databases of known phishing sources.
 
 ## Prerequisites
-Before you start using this bot, make sure you have the following:
-- Python 3.6 or higher
-- pip (Python package installer)
+Before you start using this bot, ensure you have Python 3.6 or higher and pip (Python package installer) installed on your machine. Additionally, the following Python packages are required:
+- `onnxruntime`
+- `torch`
+- `tf2onnx`
+- `skl2onnx`
+- `nlpcloud`
+- `huggingface_hub`
 
-## Installation
-To set up the Telegram Phishing Detector Bot on your local machine, follow these steps:
+You can install all required packages using the following command:
+
+```bash
+pip install onnxruntime torch tf2onnx skl2onnx nlpcloud huggingface_hub
 
