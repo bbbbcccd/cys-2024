@@ -3,6 +3,8 @@ import onnxruntime
 from huggingface_hub import hf_hub_download
 
 def predict_phishing_probabilities(urls):
+    if not urls:
+        return {}
     REPO_ID = "pirocheto/phishing-url-detection"
     FILENAME = "model.onnx"
     model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
