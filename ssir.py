@@ -20,7 +20,7 @@ def _check_registered_sender_id(response):
 
     return txt.find("Currently registered") != -1 or txt.find("Not for registration") != -1
 
-def SSIR_checker(sender_id):
+def check_ssir(sender_id):
     res = requests.get(_create_url_string(sender_id))
     return _check_registered_sender_id(res)
 
@@ -29,6 +29,6 @@ if __name__ == "__main__":
     legit_sender_id = "NUS"
     fake_sender_id = "Nus"
     gov_sender_id = "gov.sg"
-    print(SSIR_checker(legit_sender_id))
-    print(SSIR_checker(fake_sender_id))
-    print(SSIR_checker(gov_sender_id))
+    print(check_ssir(legit_sender_id))
+    print(check_ssir(fake_sender_id))
+    print(check_ssir(gov_sender_id))

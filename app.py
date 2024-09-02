@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
+from ssir import check_ssir
 from message_parser import filter_url,check_grammar
 from phishing import predict_phishing_probabilities
 app = Flask(__name__)
@@ -8,9 +9,11 @@ app = Flask(__name__)
 
 @app.route('/verify-sender-id/<sender_id>', methods=['POST', 'GET'])
 def verify_sender_id(sender_id):
+    is_registered = check_ssir(sender_id)
+
     return {
         "sender_id": sender_id,
-        "is_registered": True
+        "is_registered": is_registered
     }
 
 @app.route('/verify-message', methods=['POST'])
