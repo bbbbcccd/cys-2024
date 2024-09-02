@@ -1,7 +1,7 @@
 # cys-2024
 
 
-# Telegram Phishing Detector Bot
+# PhishZilla
 
 ## Overview
 This Telegram bot is designed to enhance cybersecurity by detecting potential phishing attempts. It analyzes messages for phishing by checking the grammar, sender ID, and the links contained within the messages. This tool aims to provide a first line of defense for users by alerting them to suspicious messages that could potentially harm their digital security.
