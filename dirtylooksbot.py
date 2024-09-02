@@ -19,7 +19,7 @@ user_data = {}
 # Command handler function for /start command
 async def start(update: Update, context: CallbackContext) -> int:
     chat_id = update.message.chat_id
-    await context.bot.send_message(chat_id, text=('Hi! Welcome to dirtylooksbot? Use this bot to verify the legitimacy of SMS messages'))
+    await context.bot.send_message(chat_id, text=('Hi! Welcome to dirtylooksbot! Use this bot to verify the legitimacy of SMS messages'))
     await update.message.reply_text('Step 1. Verify sender ID. Now, input the sender ID (Case Sensitive):')
     return WAITING_FOR_SENDER_ID
 
@@ -42,6 +42,10 @@ async def receive_sender_id(update: Update, context: CallbackContext) -> int:
 # Function to handle Text message input
 async def receive_text_message(update: Update, context: CallbackContext) -> int:
     text_message = update.message.text
+
+    # Waiting message
+    chat_id = update.message.chat_id
+    await context.bot.send_message(chat_id, text=('Hold on, calculating likelihood of a scam message...'))
     
     # Make API Call to verify message content and links
     message_api_url = API_BASE_URL + 'verify-message'
@@ -50,15 +54,11 @@ async def receive_text_message(update: Update, context: CallbackContext) -> int:
     if res.status_code == 200:
         user_data[update.message.from_user.id]['text_message'] = res.json()
 
-    chat_id = update.message.chat_id
-    await context.bot.send_message(chat_id, text=('Last step, see the likelihood of a scam message!'))
 
-    return OUTPUT_RESULTS
+    await print_results(update)
 
 # Function to handle Scammy input
-async def print_results(update: Update, context: CallbackContext) -> int:
-    print("results")
-
+async def print_results(update):
     user_id = update.message.from_user.id
     if user_id not in user_data or "sender_id" not in user_data[user_id] or "text_message" not in user_data[user_id]:
         update.message.reply_text("Something went wrong. Please try again with /start")
@@ -72,20 +72,37 @@ async def print_results(update: Update, context: CallbackContext) -> int:
     output_str = []
     output_str.append("Summary of text message sent by " + user_data[user_id]["sender_id"]["sender_id"]) # TODO: format user data better
     output_str.append(get_tests_passed(results))
+
     if results["is_registered"]:
-        output_str.append("SMS sender ID is registered") 
+        output_str.append("✅ SMS sender ID is registered") 
     else:
-        output_str.append("SMS sender ID is not registered")
-    links = user_data[user_id]["text_message"]["links"]
+        output_str.append("❌ SMS sender ID is not registered")
+    output_str.append("\n")
 
     if results["good_grammar"]:
-        output_str.append("Grammar is good")
+        output_str.append("✅ Grammar is good")
     else:
-        output_str.append("Bad grammar detected in text (Possible sign of a scam)")
+        output_str.append("❌ Bad grammar detected in text (Possible sign of a scam)")
+    output_str.append("\n")
 
-    output_str.append("Found " + str(len(links)) + " links")
-    for i, url, phishing_prob in enumerate(links):
-        output_str.append((i + 1) + ". " + url + " has a phishing probability of " + str(phishing_prob) + " / 100")
+    links = user_data[user_id]["text_message"]["links"]
+    good_links = results["good_links"]
+    bad_links = results["bad_links"]
+    output_str.append("Found " + str(len(links)) + " links in total and " + str(len(bad_links)) + " possible phishing links")
+    if len(bad_links) > 0:
+        output_str.append("❌ Listing all possible phishing links: ")
+        i = 1
+        for url, phishing_prob in bad_links:
+            output_str.append(str(i) + ". " + url + " has a phishing probability of " + str(round(phishing_prob, 2)) + "%")
+            i += 1
+    output_str.append("")
+    
+    if len(good_links) > 0:
+        output_str.append("✅ Listing all safe links: ")
+        i = 1
+        for url, phishing_prob in good_links:
+            output_str.append(str(i) + ". " + url + " has a phishing probability of " + str(round(phishing_prob, 2)) + "%")
+            i += 1
     
     output_str = "\n".join(output_str)
     
@@ -93,7 +110,6 @@ async def print_results(update: Update, context: CallbackContext) -> int:
 
     # Clear the user data after use
     del user_data[user_id]
-    return ConversationHandler.END
 
 def process_results(user_id):
     sender_id = user_data[user_id]['sender_id']
@@ -107,7 +123,7 @@ def process_results(user_id):
     }
     checks["is_registered"] = sender_id["is_registered"]
     checks["good_grammar"] = text_message["grammar"]
-    for url, phishing_prob in text_message["links"]:
+    for url, phishing_prob in text_message["links"].items():
         if phishing_prob > SCAM_THRESHOLD:
             checks["bad_links"].append((url, phishing_prob))
         else:
