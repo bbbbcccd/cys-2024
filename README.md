@@ -1,19 +1,21 @@
 # cys-2024
 
 
-## Telegram Phishing Detector bot
+# Telegram Phishing Detector Bot
 
-```import numpy as np
-import onnxruntime
-from huggingface_hub import hf_hub_download```
+## Overview
+This Telegram bot is designed to enhance cybersecurity by detecting potential phishing attempts. It analyzes messages for phishing by checking the grammar, sender ID, and the links contained within the messages. This tool aims to provide a first line of defense for users by alerting them to suspicious messages that could potentially harm their digital security.
 
+## Features
+- **Link Analysis:** Scrutinizes URLs to determine if they lead to known phishing sites.
+- **Grammar Checking:** Evaluates the grammar of the text to identify common errors found in phishing attempts.
+- **Sender Verification:** Checks sender IDs against databases of known phishing sources.
 
-```pip install onnxruntime```
+## Prerequisites
+Before you start using this bot, make sure you have the following:
+- Python 3.6 or higher
+- pip (Python package installer)
 
-```pip install torch```
+## Installation
+To set up the Telegram Phishing Detector Bot on your local machine, follow these steps:
 
-```pip install tf2onnx```
-
-```pip install skl2onnx```
-
-```pip install nlpcloud```
