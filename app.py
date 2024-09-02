@@ -22,20 +22,16 @@ def verify_message():
     msg = data.get("msg") #get input text as a string
     
     # Check grammar
-    grammarChecked = check_grammar(msg) #should return a Yes or No
-    if grammarChecked == "Yes":
-        check = True
-    else:
-        check = False
+    grammarChecked = check_grammar(msg) #will return a True or False
 
     # Predict phishing probability for each url
     urls = filter_url(msg) # should return an array of URLs
     urls = predict_phishing_probabilities(urls)
-    
+
     return {
         "msg": msg,
         "links": urls, # array of url: phishing website likelihood
-        "grammar": check # Grammar of message
+        "grammar": grammarChecked # Grammar of message
     }
 
 
