@@ -18,6 +18,7 @@ def verify_sender_id(sender_id):
 
 @app.route('/verify-message', methods=['POST'])
 def verify_message():
+    request.get_data()
     data = request.get_json()
     msg = data.get("msg") #get input text as a string
     
