@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import requests
 
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
@@ -7,101 +8,119 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 # Get tele bot key
 load_dotenv()
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+API_BASE_URL = os.environ.get('API_BASE_URL')
 
 # Define states for the conversation
-ASK_FEELING, WAITING_FOR_USER_ID, WAITING_FOR_TEXT, ASK_SCAMMY = range(4)
+WAITING_FOR_SENDER_ID, WAITING_FOR_TEXT, OUTPUT_RESULTS = range(3)
 
 # Dictionary to store user data
 user_data = {}
 
 # Command handler function for /start command
 async def start(update: Update, context: CallbackContext) -> int:
-    # Define the custom keyboard with emojis
-    keyboard = [['😊 Happy', '😞 Unhappy']]
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    chat_id = update.message.chat_id
+    await context.bot.send_message(chat_id, text=('Hi! Welcome to dirtylooksbot? Use this bot to verify the legitimacy of SMS messages'))
+    await update.message.reply_text('Step 1. Verify sender ID. Now, input the sender ID (Case Sensitive):')
+    return WAITING_FOR_SENDER_ID
 
-    # Send the initial message with the custom keyboard
-    await update.message.reply_text('Hi! How are you feeling today?', reply_markup=reply_markup)
-    return ASK_FEELING
+# Function to handle sender ID input
+async def receive_sender_id(update: Update, context: CallbackContext) -> int:
+    sender_id = update.message.text
 
-# Function to handle button clicks for "happy" and "unhappy"
-async def handle_feeling(update: Update, context: CallbackContext) -> int:
-    text = update.message.text.lower()
-    
-    if 'happy' in text:
-        await update.message.reply_text('Good day! 😊')
-        await update.message.reply_text('Input your User ID (Case Sensitive):')
-        return WAITING_FOR_USER_ID
-    
-    elif 'unhappy' in text:
-        await update.message.reply_text('Bad day! 😞')
-        await update.message.reply_text('Input your User ID (Case Sensitive):')
-        return WAITING_FOR_USER_ID
-    
-    else:
-        await update.message.reply_text('Please select either "😊 Happy" or "😞 Unhappy".')
-        return ASK_FEELING
-
-# Function to handle User ID input
-async def receive_user_id(update: Update, context: CallbackContext) -> int:
-    user_id = update.message.text
-    user_data[update.message.from_user.id] = {'user_id': user_id}
-    
-    await update.message.reply_text('Thank you! Now, input your text message:')
+    # Make API Call to verify sender id
+    sender_id_api_url = API_BASE_URL + 'verify-sender-id/' + sender_id
+    res = requests.post(sender_id_api_url)
+    if res.status_code == 200:
+        data = {
+            "sender_id": res.json()
+        }
+        user_data[update.message.from_user.id] = data
+        
+    await update.message.reply_text('Step 2, verify the message! Now, input your text message:')
     return WAITING_FOR_TEXT
 
 # Function to handle Text message input
 async def receive_text_message(update: Update, context: CallbackContext) -> int:
     text_message = update.message.text
-    user_id = user_data[update.message.from_user.id]['user_id']
     
-    # Save the text message in the user_data
-    user_data[update.message.from_user.id]['text_message'] = text_message
-    
-    await update.message.reply_text(f'User ID: {user_id}\nText Message: {text_message}')
-    await update.message.reply_text('How scammy is it? (Enter a float between 0 and 100):')
-    return ASK_SCAMMY
+    # Make API Call to verify message content and links
+    message_api_url = API_BASE_URL + 'verify-message'
+    data = {"msg": text_message}
+    res = requests.post(message_api_url, json=data)
+    if res.status_code == 200:
+        user_data[update.message.from_user.id]['text_message'] = res.json()
+
+    chat_id = update.message.chat_id
+    await context.bot.send_message(chat_id, text=('Last step, see the likelihood of a scam message!'))
+
+    return OUTPUT_RESULTS
 
 # Function to handle Scammy input
-async def handle_scammy(update: Update, context: CallbackContext) -> int:
-    try:
-        scammy_value = float(update.message.text)
-        print(f"Received scammy value: {scammy_value}")  # Debugging statement
+async def print_results(update: Update, context: CallbackContext) -> int:
+    print("results")
 
-        if scammy_value < 0 or scammy_value > 100:
-            await update.message.reply_text('Please enter a value between 0 and 100.')
-            return ASK_SCAMMY
-        
-        if 0 <= scammy_value <= 30:
-            await update.message.reply_text(
-                'Warning: This is a scam!'  # Removed parse_mode for testing
-            )
-            await update.message.reply_text(
-                'Please do not continue further.',
-            )
-        elif 30 < scammy_value <= 70:
-            await update.message.reply_text(
-                'This is likely a scam!'  # Removed parse_mode for testing
-            )
-            await update.message.reply_text(
-                'Please proceed with caution.',
-            )
-        elif 70 < scammy_value <= 100:
-            await update.message.reply_text(
-                'You are safe!'  # Removed parse_mode for testing
-            )
-            await update.message.reply_text(
-                'This is secured and is not a scam.',
-            )
-
+    user_id = update.message.from_user.id
+    if user_id not in user_data or "sender_id" not in user_data[user_id] or "text_message" not in user_data[user_id]:
+        update.message.reply_text("Something went wrong. Please try again with /start")
         # Clear the user data after use
         del user_data[update.message.from_user.id]
         return ConversationHandler.END
+    
+    results = process_results(user_id)
 
-    except ValueError:
-        await update.message.reply_text('Invalid input. Please enter a valid float number.')
-        return ASK_SCAMMY
+    # Generate text to output to users   
+    output_str = []
+    output_str.append("Summary of text message sent by " + user_data[user_id]["sender_id"]["sender_id"]) # TODO: format user data better
+    output_str.append(get_tests_passed(results))
+    if results["is_registered"]:
+        output_str.append("SMS sender ID is registered") 
+    else:
+        output_str.append("SMS sender ID is not registered")
+    links = user_data[user_id]["text_message"]["links"]
+    output_str.append("Found " + str(len(links)) + " links")
 
+    for i, url, phishing_prob in enumerate(links):
+        output_str.append((i + 1) + ". " + url + " has a phishing probability of " + str(phishing_prob) + " / 100")
+    
+    output_str = "\n".join(output_str)
+    
+    await update.message.reply_text(output_str)
+
+    # Clear the user data after use
+    del user_data[user_id]
+    return ConversationHandler.END
+
+def process_results(user_id):
+    sender_id = user_data[user_id]['sender_id']
+    text_message = user_data[user_id]['text_message']
+    
+    SCAM_THRESHOLD = 30
+
+    checks = {
+        "good_links": [],
+        "bad_links": []
+    }
+    checks["is_registered"] = sender_id["is_registered"]
+    checks["good_grammar"] = text_message["grammar"]
+    for url, phishing_prob in text_message["links"]:
+        if phishing_prob > SCAM_THRESHOLD:
+            checks["bad_links"].append((url, phishing_prob))
+        else:
+            checks["good_links"].append((url, phishing_prob))
+    
+    return checks
+
+def get_tests_passed(results):
+    TOTAL_CHECKS = 3
+    checks_passed = 0
+    if results["is_registered"]:
+        checks_passed += 1
+    if results["good_grammar"]:
+        checks_passed += 1
+    if len(results["bad_links"]) == 0:
+        checks_passed += 1
+    
+    return "Number of tests passed: " + str(checks_passed) + " / " + str(TOTAL_CHECKS)
 
 def main():
     # Create the Application and pass it your bot's token
@@ -111,10 +130,9 @@ def main():
     conversation_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            ASK_FEELING: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_feeling)],
-            WAITING_FOR_USER_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_user_id)],
+            WAITING_FOR_SENDER_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_sender_id)],
             WAITING_FOR_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_text_message)],
-            ASK_SCAMMY: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_scammy)],
+            OUTPUT_RESULTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, print_results)],
         },
         fallbacks=[]
     )
