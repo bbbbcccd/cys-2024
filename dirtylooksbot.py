@@ -79,6 +79,11 @@ async def print_results(update: Update, context: CallbackContext) -> int:
     links = user_data[user_id]["text_message"]["links"]
     output_str.append("Found " + str(len(links)) + " links")
 
+    if results["good_grammar"]:
+        output_str.append("Grammar is good")
+    else:
+        output_str.append("Bad grammar detected in text (Possible sign of a scam)")
+
     for i, url, phishing_prob in enumerate(links):
         output_str.append((i + 1) + ". " + url + " has a phishing probability of " + str(phishing_prob) + " / 100")
     
