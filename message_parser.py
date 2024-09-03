@@ -7,7 +7,7 @@ load_dotenv()
 
 # Keeps urls from text
 def filter_url(text): 
-    url_pattern = r'\b(?:https?://|www\.)\S+\b|\b[\w.+-]+@[\w-]+\.[\w.-]+\b'
+    url_pattern =r'\b(?:https?://)?(?:www\.)?[\w.-]+\.[a-zA-Z]{2,6}(?:/\S*)?\b'
     urls = re.findall(url_pattern, text)
     return urls
 
