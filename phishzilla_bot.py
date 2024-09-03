@@ -115,7 +115,7 @@ def process_results(user_id):
     sender_id = user_data[user_id]['sender_id']
     text_message = user_data[user_id]['text_message']
     
-    SCAM_THRESHOLD = 30
+    SCAM_THRESHOLD = 60
 
     checks = {
         "good_links": [],
