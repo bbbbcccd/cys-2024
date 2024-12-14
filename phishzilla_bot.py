@@ -18,9 +18,17 @@ user_data = {}
 
 # Command handler function for /start command
 async def start(update: Update, context: CallbackContext) -> int:
+    user_id = update.message.from_user.id
+
+    # Reset user data for this user
+    user_data[user_id] = {}
+
+    # Send a welcome message
     chat_id = update.message.chat_id
-    await context.bot.send_message(chat_id, text=('Hi! Welcome to PhishZilla! Use this bot to verify the legitimacy of SMS messages'))
+    await context.bot.send_message(chat_id, text='Hi! Welcome to PhishZilla! Use this bot to verify the legitimacy of SMS messages.')
     await update.message.reply_text('Step 1. Verify sender ID. Now, input the sender ID (Case Sensitive):')
+
+    # Transition to WAITING_FOR_SENDER_ID state
     return WAITING_FOR_SENDER_ID
 
 # Function to handle sender ID input
@@ -147,6 +155,7 @@ def main():
     # Create the Application and pass it your bot's token
     application = Application.builder().token(BOT_TOKEN).build()
 
+
     # Create a ConversationHandler for the user interaction
     conversation_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -155,7 +164,7 @@ def main():
             WAITING_FOR_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_text_message)],
             OUTPUT_RESULTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, print_results)],
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler('start', start)]
     )
 
     # Register the conversation handler
