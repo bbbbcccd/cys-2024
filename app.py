@@ -1,7 +1,7 @@
 from flask import Flask, request
-from ssir import check_ssir
-from message_parser import filter_url,check_grammar
-from phishing import predict_phishing_probabilities
+from tele_bot.ssir import check_ssir
+from tele_bot.message_parser import filter_url,check_grammar
+from tele_bot.phishing import predict_phishing_probabilities
 app = Flask(__name__)
 
 @app.route('/')
@@ -38,4 +38,4 @@ def verify_message():
 
 # main driver function
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)

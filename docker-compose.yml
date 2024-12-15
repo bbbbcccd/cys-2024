@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  flask:
+    build:
+      context: .
+    container_name: flask_api
+    ports:
+      - "5000:5000"  # Expose Flask on port 5000
+    networks:
+      - app_network
+
+  tele_bot:
+    build:
+      context: ./tele_bot
+    container_name: telegram_bot
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - API_BASE_URL=http://flask:5000/  # Use Flask service name
+    depends_on:
+      - flask  # Ensure Flask starts before Telegram bot
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
